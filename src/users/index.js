@@ -72,14 +72,42 @@ router.post(
     } catch (e) {
       console.log(e);
     }
-    //   req.user.refreshTokens = req.user.refreshTokens.filter(
-    //     (t) => t.token !== req.body.refreshToken
-    //   await req.user.save();
-    //   res.send();
-    // } catch (err) {
-    //   next(err);
-    // }
   }
 );
+router.route("/token").post(async (req, res, next) => {
+  const refreshToken = req.body.refreshToken;
+  console.log(refreshToken);
+  if (refreshToken) {
+    const decoded = jwt.verify(refreshToken, process.env.REFRESH_JWT_KEY);
+    const user = await UserSchema.findOne({ where: { _id: decoded._id } });
+    if (!user) res.status(401);
+    else {
+      const currentToken = user.refresh_tokens.find(
+        (token) => token === refreshToken
+      );
+      if (!currentToken) res.status(401);
+      else {
+        const token = jwt.sign({ _id: user._id }, process.env.JWT_SECRET_KEY, {
+          expiresIn: 300,
+        });
+        const refreshToken = jwt.sign(
+          { _id: user._id },
+          process.env.REFRESH_JWT_KEY,
+          { expiresIn: "1 week" }
+        );
+        user.refresh_tokens = user.refresh_tokens
+          .filter((token) => token !== currentToken)
+          .concat(refreshToken);
+        await UserSchema.update(
+          { refresh_tokens: user.refresh_tokens },
+          { where: { _id: user._id } }
+        );
+        res.send({ user, token });
+      }
+    }
+  } else {
+    res.status(401);
+  }
+});
 
 module.exports = router;
