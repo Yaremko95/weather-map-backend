@@ -119,7 +119,7 @@ passport.use(
       console.log(profile);
       try {
         const data = profile._json;
-        const user = await UserSchema.findOne({
+        let user = await UserSchema.findOne({
           where: { facebookid: data.id },
         });
         if (user) {
@@ -130,7 +130,11 @@ passport.use(
             refreshToken: result.refreshToken,
           });
         } else {
-          await UserSchema.create({ email: data.email, facebookid: data.id });
+          let user = await UserSchema.create({
+            email: data.email,
+            facebookid: data.id,
+            refresh_tokens: [],
+          });
           const result = await authenticate(user);
           done(null, {
             user: result.user,

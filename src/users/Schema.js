@@ -62,6 +62,7 @@ const User = orm.define(
   }
 );
 User.hasMany(City, { foreignKey: "userid" });
+City.belongsTo(User, { foreignKey: "userid" });
 User.prototype.validPassword = async function (password) {
   return await bcrypt.compare(password, this.password);
 };

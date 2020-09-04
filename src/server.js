@@ -7,6 +7,7 @@ dotenv.config();
 const pass = require("./passport");
 
 const userRouter = require("./users");
+const citiesRouter = require("./cities");
 const sequelize = require("./db/index");
 
 const app = express();
@@ -16,6 +17,11 @@ app.use(cors());
 app.use(express.json());
 
 app.use("/users", userRouter);
+app.use(
+  "/list",
+  passport.authenticate("jwt", { session: false }),
+  citiesRouter
+);
 
 app.listen(process.env.PORT, () => {
   console.log("running ", process.env.PORT);
