@@ -1,4 +1,4 @@
-const orm = require("../db");
+const orm = require("../../db");
 const Sequelize = require("sequelize");
 const bcrypt = require("bcrypt");
 const City = require("../cities/Schema");

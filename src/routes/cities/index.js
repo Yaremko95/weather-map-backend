@@ -28,12 +28,19 @@ router.route("/").post(async (req, res, next) => {
 
 router.route("/:id").delete(async (req, res, next) => {
   try {
-    let result = await CitySchema.destroy({
-      where: {
-        _id: req.params.id,
-      },
+    const city = await CitySchema.findOne({
+      where: { _id: req.params.id, userid: req.user_id },
     });
-    res.send("ok");
+    if (city) {
+      let result = await CitySchema.destroy({
+        where: {
+          _id: req.params.id,
+        },
+      });
+      res.send("ok");
+    } else {
+      res.status(404).send("Not found");
+    }
   } catch (e) {
     console.log(e);
   }

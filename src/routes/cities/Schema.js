@@ -1,4 +1,4 @@
-const orm = require("../db");
+const orm = require("../../db");
 const Sequelize = require("sequelize");
 const City = orm.define(
   "cities",
