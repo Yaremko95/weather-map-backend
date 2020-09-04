@@ -1,6 +1,7 @@
 const orm = require("../db");
 const Sequelize = require("sequelize");
 const bcrypt = require("bcrypt");
+const City = require('../cities/Schema')
 const User = orm.define(
     "users",
     {
@@ -56,6 +57,7 @@ const User = orm.define(
     }
 
 );
+User.hasMany(City, { foreignKey: "userid" });
 User.prototype.validPassword = async function (password) {
     return await bcrypt.compare(password, this.password);
 };
