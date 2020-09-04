@@ -10,16 +10,6 @@ router.route("/signUp").post(async (req, res, next) => {
 });
 
 router.route("/login").post(async (req, res, next) => {
-  // UserSchema.findOne({ where: { email: req.body.email } }).then(
-  //   async (user) => {
-  //     if (!user) {
-  //       res.status(401).send("invalid username or password");
-  //     } else if (!user.validPassword(req.body.password)) {
-  //       res.status(401).send("invalid password or password");
-  //     } else {
-  //     }
-  //   }
-  // );
   passport.authenticate(
     "local",
     { session: false },
@@ -37,7 +27,7 @@ router.route("/login").post(async (req, res, next) => {
           res.send(err);
         }
         const token = jwt.sign({ _id: user._id }, process.env.JWT_SECRET_KEY, {
-          expiresIn: 300,
+          expiresIn: "1h",
         });
         const refreshToken = jwt.sign(
           { _id: user._id },
@@ -65,5 +55,31 @@ router.route("/login").post(async (req, res, next) => {
     }
   )(req, res);
 });
+router.post(
+  "/logout",
+  passport.authenticate("jwt", { session: false }),
+  async (req, res, next) => {
+    console.log(req.user);
+    try {
+      req.user.refresh_tokens = req.user.refresh_tokens.filter(
+        (t) => t !== req.cookies.refreshToken
+      );
+      await UserSchema.update(
+        { refresh_tokens: req.user.refresh_tokens },
+        { where: { _id: req.user._id } }
+      );
+      res.send();
+    } catch (e) {
+      console.log(e);
+    }
+    //   req.user.refreshTokens = req.user.refreshTokens.filter(
+    //     (t) => t.token !== req.body.refreshToken
+    //   await req.user.save();
+    //   res.send();
+    // } catch (err) {
+    //   next(err);
+    // }
+  }
+);
 
 module.exports = router;
