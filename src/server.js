@@ -4,17 +4,19 @@ const passport = require("passport");
 const cookieParser = require("cookie-parser");
 const dotenv = require("dotenv");
 dotenv.config();
+const pass = require("./passport");
 
-
+const userRouter = require("./users");
 const sequelize = require("./db/index");
 
 const app = express();
-
+app.use(passport.initialize());
 app.use(cookieParser());
 app.use(cors());
 app.use(express.json());
-app.use(passport.initialize());
+
+app.use("/users", userRouter);
 
 app.listen(process.env.PORT, () => {
-    console.log("running");
+  console.log("running ", process.env.PORT);
 });
