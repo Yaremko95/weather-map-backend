@@ -19,6 +19,10 @@ const User = orm.define(
     password: {
       type: Sequelize.STRING,
       allowNull: true,
+      get() {
+        // const rawValue = this.getDataValue(password);
+        return 0;
+      },
       validate: function (value) {
         if (
           value === null &&

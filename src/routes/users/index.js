@@ -18,10 +18,9 @@ router.route("/login").post(async (req, res, next) => {
         console.log(err);
         return res.status(400).json({
           message: info,
-          user: user,
+          user: { ...user, password: 0 },
         });
       }
-      console.log("hello");
       req.login(user, { session: false }, async (err) => {
         if (err) {
           res.send(err);
@@ -50,6 +49,7 @@ router.route("/login").post(async (req, res, next) => {
           path: "/",
           httpOnly: true,
         });
+        console.log(user);
         return res.json({ user, token, refreshToken });
       });
     }
