@@ -10,10 +10,11 @@ const User = orm.define(
             primaryKey: true,
             autoIncrement: true,
         },
-        username: {
+        email: {
             type: Sequelize.STRING,
             allowNull: false,
             unique: true,
+            isEmail:true
         },
         password: {
             type: Sequelize.STRING,

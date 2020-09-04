@@ -1,6 +1,5 @@
 const orm = require("../db");
 const Sequelize = require("sequelize");
-const bcrypt = require("bcrypt");
 const City = orm.define(
     "city",
     {
