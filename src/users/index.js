@@ -118,4 +118,18 @@ router
     }
   });
 
+router.route("/fbLogin").get(
+  passport.authenticate("facebook", {
+    scope: ["email", "user_friends", "user_location"],
+  })
+);
+
+router
+  .route("/facebook/callback")
+  .get(passport.authenticate("facebook"), (req, res, next) => {
+    // console.log(req.user._json);
+
+    res.send("ok");
+  });
+
 module.exports = router;

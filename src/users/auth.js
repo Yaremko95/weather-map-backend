@@ -19,3 +19,5 @@ const authenticate = async (user) => {
   );
   return { user, token, refreshToken };
 };
+
+module.exports = { authenticate };

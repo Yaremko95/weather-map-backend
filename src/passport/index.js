@@ -5,6 +5,9 @@ const JWTStrategy = passportJWT.Strategy;
 const UserSchema = require("../users/Schema");
 const GoogleStrategy = require("passport-google-oauth20").Strategy;
 const { authenticate } = require("../users/auth");
+const strategy = require("passport-facebook");
+const FbStrategy = strategy.Strategy;
+
 passport.use(
   new LocalStrategy(
     {
@@ -70,12 +73,20 @@ passport.use(
           where: { googleid: profile.id },
         });
         if (user) {
-          const { user, token, refreshToken } = await authenticate(user);
-          done(null, { user, token, refreshToken });
+          const result = await authenticate(user);
+          done(null, {
+            user: result.user,
+            token: result.token,
+            refreshToken: result.refreshToken,
+          });
         } else {
           await UserSchema.create(newUser);
-          const { user, token } = await authenticate(user);
-          done(null, { user, token, refreshToken });
+          const result = await authenticate(user);
+          done(null, {
+            user: result.user,
+            token: result.token,
+            refreshToken: result.refreshToken,
+          });
         }
       } catch (error) {
         console.log(error);
@@ -85,10 +96,59 @@ passport.use(
   )
 );
 
-// passport.serializeUser(function (user, done) {
-//   done(null, user);
-// });
-//
-// passport.deserializeUser(function (obj, done) {
-//   done(null, obj);
-// });
+passport.use(
+  new FbStrategy(
+    {
+      clientID: process.env.FACEBOOK_CLIENT_ID,
+      clientSecret: process.env.FACEBOOK_CLIENT_SECRET,
+      callbackURL: process.env.FACEBOOK_CALLBACK_URL,
+      profileURL: "https://graph.facebook.com/v2.10/me",
+      authorizationURL: "https://www.facebook.com/v2.10/dialog/oauth",
+      tokenURL: "https://graph.facebook.com/v2.10/oauth/access_token",
+      profileFields: [
+        "id",
+        "displayName",
+        "picture.width(200).height(200)",
+        "email",
+        "friends",
+      ],
+    },
+    async function (accessToken, refreshToken, profile, done) {
+      console.log(profile);
+      try {
+        const data = profile._json;
+        const user = await UserSchema.findOne({
+          where: { facebookid: data.id },
+        });
+        if (user) {
+          const result = await authenticate(user);
+          done(null, {
+            user: result.user,
+            token: result.token,
+            refreshToken: result.refreshToken,
+          });
+        } else {
+          await UserSchema.create({ email: data.email, facebookid: data.id });
+          const result = await authenticate(user);
+          done(null, {
+            user: result.user,
+            token: result.token,
+            refreshToken: result.refreshToken,
+          });
+        }
+      } catch (error) {
+        console.log(error);
+        done(error);
+      }
+      done(null, { ...profile });
+    }
+  )
+);
+
+passport.serializeUser(function (user, done) {
+  done(null, user);
+});
+
+passport.deserializeUser(function (obj, done) {
+  done(null, obj);
+});
