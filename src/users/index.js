@@ -50,7 +50,7 @@ router.route("/login").post(async (req, res, next) => {
           path: "/",
           httpOnly: true,
         });
-        return res.json({ user, token });
+        return res.json({ user, token, refreshToken });
       });
     }
   )(req, res);
@@ -87,21 +87,7 @@ router.route("/token").post(async (req, res, next) => {
       );
       if (!currentToken) res.status(401);
       else {
-        const token = jwt.sign({ _id: user._id }, process.env.JWT_SECRET_KEY, {
-          expiresIn: 300,
-        });
-        const refreshToken = jwt.sign(
-          { _id: user._id },
-          process.env.REFRESH_JWT_KEY,
-          { expiresIn: "1 week" }
-        );
-        user.refresh_tokens = user.refresh_tokens
-          .filter((token) => token !== currentToken)
-          .concat(refreshToken);
-        await UserSchema.update(
-          { refresh_tokens: user.refresh_tokens },
-          { where: { _id: user._id } }
-        );
+        const { user, token } = authenticate(user);
         res.send({ user, token });
       }
     }
@@ -109,5 +95,27 @@ router.route("/token").post(async (req, res, next) => {
     res.status(401);
   }
 });
+router
+  .route("/googleLogin")
+  .get(passport.authenticate("google", { scope: ["profile", "email"] }));
+
+router
+  .route("/googleRedirect")
+  .get(passport.authenticate("google"), async (req, res, next) => {
+    try {
+      const { token, refreshToken, user } = req.user;
+      res.cookie("accessToken", token, {
+        httpOnly: true,
+      });
+      res.cookie("refreshToken", refreshToken, {
+        httpOnly: true,
+        path: "/users/refreshToken",
+      });
+      res.status(200).send(user);
+    } catch (error) {
+      console.log(error);
+      next(error);
+    }
+  });
 
 module.exports = router;
