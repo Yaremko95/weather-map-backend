@@ -66,10 +66,11 @@ passport.use(
       const newUser = {
         googleid: profile.id,
         email: profile.emails[0].value,
+        refresh_tokens: [],
       };
 
       try {
-        const user = await UserSchema.findOne({
+        let user = await UserSchema.findOne({
           where: { googleid: profile.id },
         });
         if (user) {
@@ -80,7 +81,8 @@ passport.use(
             refreshToken: result.refreshToken,
           });
         } else {
-          await UserSchema.create(newUser);
+          user = await UserSchema.create(newUser);
+          console.log(user);
           const result = await authenticate(user);
           done(null, {
             user: result.user,

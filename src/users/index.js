@@ -104,6 +104,7 @@ router
   .get(passport.authenticate("google"), async (req, res, next) => {
     try {
       const { token, refreshToken, user } = req.user;
+      console.log(token);
       res.cookie("accessToken", token, {
         httpOnly: true,
       });
