@@ -43,7 +43,11 @@ passport.use(
       secretOrKey: process.env.JWT_SECRET_KEY,
     },
     async function (jwtPayload, cb) {
-      console.log(jwtPayload);
+      console.log("jwtPayload", jwtPayload);
+      const expirationDate = new Date(jwtPayload.exp * 1000);
+      // if (expirationDate < new Date()) {
+      //   return cb(null, false);
+      // }
       const user = await UserSchema.findOne({ where: { _id: jwtPayload._id } });
       if (user) {
         return cb(null, user.dataValues);
@@ -67,6 +71,7 @@ passport.use(
         googleid: profile.id,
         email: profile.emails[0].value,
         refresh_tokens: [],
+        favourites: [],
       };
 
       try {
@@ -74,7 +79,8 @@ passport.use(
           where: { googleid: profile.id },
         });
         if (user) {
-          const result = await authenticate(user);
+          console.log(user);
+          const result = await authenticate(user.dataValues);
           done(null, {
             user: result.user,
             token: result.token,
@@ -83,7 +89,7 @@ passport.use(
         } else {
           user = await UserSchema.create(newUser);
           console.log(user);
-          const result = await authenticate(user);
+          const result = await authenticate(user.dataValues);
           done(null, {
             user: result.user,
             token: result.token,
@@ -91,7 +97,6 @@ passport.use(
           });
         }
       } catch (error) {
-        console.log(error);
         done(error);
       }
     }
@@ -116,26 +121,32 @@ passport.use(
       ],
     },
     async function (accessToken, refreshToken, profile, done) {
-      console.log(profile);
       try {
         const data = profile._json;
         let user = await UserSchema.findOne({
           where: { facebookid: data.id },
         });
+        console.log("user found");
         if (user) {
-          const result = await authenticate(user);
+          console.log("user found");
+          // console.log);
+          const result = await authenticate(user.dataValues);
+
           done(null, {
             user: result.user,
             token: result.token,
             refreshToken: result.refreshToken,
           });
         } else {
+          console.log("user not found");
           let user = await UserSchema.create({
             email: data.email,
             facebookid: data.id,
             refresh_tokens: [],
+            favourites: [],
           });
-          const result = await authenticate(user);
+          const result = await authenticate(user.dataValues);
+
           done(null, {
             user: result.user,
             token: result.token,

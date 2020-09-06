@@ -3,8 +3,9 @@ const UserSchema = require("./Schema");
 const router = express.Router();
 const jwt = require("jsonwebtoken");
 const passport = require("passport");
+const { authenticate } = require("./auth");
 router.route("/signUp").post(async (req, res, next) => {
-  UserSchema.create({ ...req.body, refresh_tokens: [] })
+  UserSchema.create({ ...req.body, refresh_tokens: [], favourites: [] })
     .then((user) => res.send({ _id: user._id }))
     .catch((e) => res.send(e));
 });
@@ -15,7 +16,6 @@ router.route("/login").post(async (req, res, next) => {
     { session: false },
     async (err, user, info) => {
       if (err || !user) {
-        console.log(err);
         return res.status(400).json({
           message: info,
           user: { ...user, password: 0 },
@@ -26,7 +26,7 @@ router.route("/login").post(async (req, res, next) => {
           res.send(err);
         }
         const token = jwt.sign({ _id: user._id }, process.env.JWT_SECRET_KEY, {
-          expiresIn: "1h",
+          expiresIn: "15000",
         });
         const refreshToken = jwt.sign(
           { _id: user._id },
@@ -49,8 +49,8 @@ router.route("/login").post(async (req, res, next) => {
           path: "/",
           httpOnly: true,
         });
-        console.log(user);
-        return res.json({ user, token, refreshToken });
+
+        return res.json({ token, refreshToken });
       });
     }
   )(req, res);
@@ -59,7 +59,6 @@ router.post(
   "/logout",
   passport.authenticate("jwt", { session: false }),
   async (req, res, next) => {
-    console.log(req.user);
     try {
       req.user.refresh_tokens = req.user.refresh_tokens.filter(
         (t) => t !== req.cookies.refreshToken
@@ -68,6 +67,8 @@ router.post(
         { refresh_tokens: req.user.refresh_tokens },
         { where: { _id: req.user._id } }
       );
+      res.clearCookie("accessToken");
+      res.clearCookie("refreshToken");
       res.send();
     } catch (e) {
       console.log(e);
@@ -75,24 +76,37 @@ router.post(
   }
 );
 router.route("/token").post(async (req, res, next) => {
-  const refreshToken = req.body.refreshToken;
-  console.log(refreshToken);
+  const refreshToken = req.cookies.refreshToken;
+  console.log(req);
   if (refreshToken) {
     const decoded = jwt.verify(refreshToken, process.env.REFRESH_JWT_KEY);
     const user = await UserSchema.findOne({ where: { _id: decoded._id } });
-    if (!user) res.status(401);
+    if (!user) res.status(401).send("no user");
     else {
       const currentToken = user.refresh_tokens.find(
         (token) => token === refreshToken
       );
-      if (!currentToken) res.status(401);
+      if (!currentToken) res.status(401).send("no token");
       else {
-        const { user, token } = authenticate(user);
-        res.send({ user, token });
+        const data = await authenticate(user);
+        res.cookie("accessToken", data.token, {
+          path: "/",
+          httpOnly: true,
+        });
+
+        res.cookie("refreshToken", data.refreshToken, {
+          path: "/",
+          httpOnly: true,
+        });
+        res.send({
+          user: data.user,
+          token: data.token,
+          refreshToken: data.refreshToken,
+        });
       }
     }
   } else {
-    res.status(401);
+    res.status(401).send();
   }
 });
 router
@@ -104,15 +118,10 @@ router
   .get(passport.authenticate("google"), async (req, res, next) => {
     try {
       const { token, refreshToken, user } = req.user;
-      console.log(token);
-      res.cookie("accessToken", token, {
-        httpOnly: true,
-      });
-      res.cookie("refreshToken", refreshToken, {
-        httpOnly: true,
-        path: "/users/refreshToken",
-      });
-      res.status(200).send(user);
+
+      res.cookie("accessToken", req.user.token);
+      res.cookie("refreshToken", req.user.refreshToken);
+      return res.status(201).redirect("http://localhost:3000");
     } catch (error) {
       console.log(error);
       next(error);
@@ -128,9 +137,9 @@ router.route("/fbLogin").get(
 router
   .route("/facebook/callback")
   .get(passport.authenticate("facebook"), (req, res, next) => {
-    // console.log(req.user._json);
-
-    res.send("ok");
+    res.cookie("accessToken", req.user.token);
+    res.cookie("refreshToken", req.user.refreshToken);
+    return res.status(201).redirect("http://localhost:3000");
   });
 
 module.exports = router;

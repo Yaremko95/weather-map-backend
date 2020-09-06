@@ -1,7 +1,7 @@
 const orm = require("../../db");
 const Sequelize = require("sequelize");
 const bcrypt = require("bcrypt");
-const City = require("../cities/Schema");
+
 const User = orm.define(
   "users",
   {
@@ -20,8 +20,7 @@ const User = orm.define(
       type: Sequelize.STRING,
       allowNull: true,
       get() {
-        // const rawValue = this.getDataValue(password);
-        return 0;
+        return "";
       },
       validate: function (value) {
         if (
@@ -43,8 +42,12 @@ const User = orm.define(
       allowNull: true,
     },
     facebookid: {
-      type: Sequelize.ARRAY(Sequelize.STRING),
+      type: Sequelize.STRING,
       allowNull: true,
+    },
+    favourites: {
+      type: Sequelize.ARRAY(Sequelize.STRING),
+      defaultValue: [],
     },
   },
   {
@@ -65,8 +68,7 @@ const User = orm.define(
     },
   }
 );
-User.hasMany(City, { foreignKey: "userid" });
-City.belongsTo(User, { foreignKey: "userid" });
+
 User.prototype.validPassword = async function (password) {
   return await bcrypt.compare(password, this.password);
 };
